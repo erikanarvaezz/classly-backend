@@ -71,6 +71,24 @@ router.patch('/usuarios/:id/rol', async (req, res) => {
   }
 });
 
+// RESTABLECER la contraseña de una cuenta (Dirección le da una temporal)
+router.patch('/usuarios/:id/contrasena', async (req, res) => {
+  try {
+    const contrasena = String(req.body.contrasena || '');
+    if (contrasena.length < 6) {
+      return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres' });
+    }
+    const hash = await bcrypt.hash(contrasena, 10);
+    const [resultado] = await pool.query('UPDATE usuarios SET contrasena_hash = ? WHERE id_usuarios = ?', [hash, req.params.id]);
+    if (resultado.affectedRows === 0) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+    res.json({ mensaje: 'Contraseña restablecida' });
+  } catch (error) {
+    res.status(500).json({ error: 'No se pudo restablecer la contraseña', detalle: error.message });
+  }
+});
+
 // VER todas las materias con su profesor y cuántos inscritos tienen
 router.get('/materias', async (req, res) => {
   try {

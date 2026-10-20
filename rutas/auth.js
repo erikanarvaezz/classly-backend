@@ -85,6 +85,28 @@ router.patch('/avatar', verificarToken, async (req, res) => {
   }
 });
 
+// CAMBIAR mi contraseña (estando logueado)
+router.patch('/contrasena', verificarToken, async (req, res) => {
+  try {
+    const actual = String(req.body.actual || '');
+    const nueva = String(req.body.nueva || '');
+    if (nueva.length < 6) {
+      return res.status(400).json({ error: 'La contraseña nueva debe tener al menos 6 caracteres' });
+    }
+    const [filas] = await pool.query('SELECT contrasena_hash FROM usuarios WHERE id_usuarios = ?', [req.usuario.id]);
+    if (filas.length === 0) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+    const valida = await bcrypt.compare(actual, filas[0].contrasena_hash);
+    if (!valida) return res.status(400).json({ error: 'La contraseña actual no es correcta' });
+
+    const hash = await bcrypt.hash(nueva, 10);
+    await pool.query('UPDATE usuarios SET contrasena_hash = ? WHERE id_usuarios = ?', [hash, req.usuario.id]);
+    res.json({ mensaje: 'Contraseña cambiada' });
+  } catch (error) {
+    res.status(500).json({ error: 'No se pudo cambiar la contraseña', detalle: error.message });
+  }
+});
+
 // LOGIN
 router.post('/login', async (req, res) => {
   try {
