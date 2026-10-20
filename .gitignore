@@ -1,0 +1,4 @@
+
+# Archivos que NO se suben a GitHub
+.env
+node_modules/
