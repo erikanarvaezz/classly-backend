@@ -9,6 +9,7 @@ const preguntasRutas = require('./rutas/preguntas');
 const adminRutas = require('./rutas/admin');
 const iaRutas = require('./rutas/ia');
 const juegoRutas = require('./rutas/juego');
+const notificacionesRutas = require('./rutas/notificaciones');
 const prepararBaseDeDatos = require('./prepararBaseDeDatos');
 const pool = require('./db');
 
@@ -23,6 +24,7 @@ app.use('/preguntas', preguntasRutas);
 app.use('/admin', adminRutas);
 app.use('/ia', iaRutas);
 app.use('/juego', juegoRutas);
+app.use('/notificaciones', notificacionesRutas);
 
 
 app.get('/', async (req, res) => {
