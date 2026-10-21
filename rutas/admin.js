@@ -2,6 +2,7 @@ const express = require('express');
 const bcrypt = require('bcrypt');
 const pool = require('../db');
 const { verificarToken, permitirRoles } = require('../middlewares/auth');
+const { enviarPush } = require('../notificaciones');
 
 const router = express.Router();
 
@@ -141,6 +142,13 @@ router.post('/inscripciones', async (req, res) => {
 
     await pool.query('INSERT INTO inscripciones (estudiante_id, materia_id) VALUES (?, ?)', [estudiante_id, materia_id]);
     res.status(201).json({ mensaje: 'Estudiante inscrito' });
+
+    const [[materia]] = await pool.query('SELECT nombre FROM materias WHERE id_materia = ?', [materia_id]);
+    enviarPush([estudiante_id], {
+      titulo: '¡Tienes una materia nueva!',
+      cuerpo: `Te inscribieron en ${materia?.nombre || 'una materia'}. Ya puedes jugar y ver tus notas.`,
+      datos: { ruta: '/estudiante' },
+    });
   } catch (error) {
     res.status(500).json({ error: 'No se pudo inscribir', detalle: error.message });
   }
