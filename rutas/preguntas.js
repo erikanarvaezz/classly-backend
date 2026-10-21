@@ -1,6 +1,7 @@
 const express = require('express');
 const pool = require('../db');
 const { verificarToken, permitirRoles } = require('../middlewares/auth');
+const { enviarPush, puedeEnviar } = require('../notificaciones');
 
 const router = express.Router();
 
@@ -41,6 +42,20 @@ router.post('/', verificarToken, permitirRoles('profesor'), async (req, res) => 
     );
 
     res.status(201).json({ mensaje: 'Pregunta creada', id: resultado.insertId });
+
+    // Aviso a los estudiantes inscritos (máximo uno cada 10 minutos por materia)
+    if (puedeEnviar(`preguntas-${materia_id}`)) {
+      const [[materia]] = await pool.query('SELECT nombre FROM materias WHERE id_materia = ?', [materia_id]);
+      const [inscritos] = await pool.query('SELECT estudiante_id FROM inscripciones WHERE materia_id = ?', [materia_id]);
+      enviarPush(
+        inscritos.map((i) => i.estudiante_id),
+        {
+          titulo: `Preguntas nuevas en ${materia?.nombre || 'tu materia'}`,
+          cuerpo: '¡Hay preguntas nuevas en el mini juego! Ve a practicar 🐙',
+          datos: { ruta: '/estudiante/juegos' },
+        }
+      );
+    }
   } catch (error) {
     res.status(500).json({ error: 'No se pudo crear la pregunta', detalle: error.message });
   }
