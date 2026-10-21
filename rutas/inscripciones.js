@@ -26,7 +26,7 @@ router.get('/materia/:materia_id', verificarToken, permitirRoles('profesor'), as
     const { materia_id } = req.params;
 
     const [estudiantes] = await pool.query(
-      `SELECT usuarios.id_usuarios, usuarios.nombre, usuarios.email
+      `SELECT usuarios.id_usuarios, usuarios.nombre, usuarios.email, usuarios.avatar
        FROM inscripciones
        JOIN usuarios ON inscripciones.estudiante_id = usuarios.id_usuarios
        WHERE inscripciones.materia_id = ?`,
