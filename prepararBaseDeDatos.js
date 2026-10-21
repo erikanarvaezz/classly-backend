@@ -30,6 +30,7 @@ async function prepararBaseDeDatos() {
 
     await crearTablaPuntajes();
     await asegurarColumnaAvatar();
+    await crearTablaPushTokens();
 
     if (!process.env.ADMIN_EMAIL) {
       console.log('ℹ️  Falta ADMIN_EMAIL en el archivo .env: todavía nadie puede ser administrador.');
@@ -73,6 +74,17 @@ async function asegurarColumnaAvatar() {
     await pool.query('ALTER TABLE usuarios ADD COLUMN avatar VARCHAR(30) NULL');
     console.log('✅ Se agregó la columna avatar a usuarios.');
   }
+}
+
+// Tokens de los celulares para las notificaciones push
+async function crearTablaPushTokens() {
+  await pool.query(`CREATE TABLE IF NOT EXISTS push_tokens (
+    id_token INT AUTO_INCREMENT PRIMARY KEY,
+    usuario_id INT NOT NULL,
+    token VARCHAR(255) NOT NULL UNIQUE,
+    actualizado TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_push_usuario (usuario_id)
+  )`);
 }
 
 module.exports = prepararBaseDeDatos;
