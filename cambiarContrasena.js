@@ -1,11 +1,25 @@
 // Cambia la contraseña de una cuenta.
 // Uso (en la carpeta backend):  node cambiarContrasena.js correo@ejemplo.com NuevaContrasena
-require('dotenv').config({ override: true, quiet: true });
+// Para la base de datos de la NUBE (Aiven):  node cambiarContrasena.js --nube correo@ejemplo.com NuevaContrasena
+const fs = require('fs');
+const path = require('path');
+const args = process.argv.slice(2);
+const enNube = args[0] === '--nube';
+if (enNube) {
+  args.shift();
+  require('dotenv').config({ path: path.join(__dirname, 'variables-render.txt'), override: true, quiet: true });
+  if (!process.env.DB_SSL_CA_FILE || !fs.existsSync(process.env.DB_SSL_CA_FILE)) {
+    process.env.DB_SSL_CA_FILE = path.join(__dirname, 'ca.pem');
+  }
+  console.log('☁️  Usando la base de datos de la nube...');
+} else {
+  require('dotenv').config({ override: true, quiet: true });
+}
 const bcrypt = require('bcrypt');
 const pool = require('./db');
 
 (async () => {
-  const [email, nueva] = process.argv.slice(2);
+  const [email, nueva] = args;
   if (!email || !nueva) {
     console.log('Uso: node cambiarContrasena.js correo@ejemplo.com NuevaContrasena');
     process.exit(1);
