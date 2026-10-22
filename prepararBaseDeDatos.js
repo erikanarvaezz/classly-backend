@@ -31,6 +31,7 @@ async function prepararBaseDeDatos() {
     await crearTablaPuntajes();
     await asegurarColumnaAvatar();
     await crearTablaPushTokens();
+    await asegurarCorreoUnico();
 
     if (!process.env.ADMIN_EMAIL) {
       console.log('ℹ️  Falta ADMIN_EMAIL en el archivo .env: todavía nadie puede ser administrador.');
@@ -85,6 +86,28 @@ async function crearTablaPushTokens() {
     actualizado TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_push_usuario (usuario_id)
   )`);
+}
+
+// Que nunca existan dos cuentas con el mismo correo (aunque toquen el botón dos veces)
+async function asegurarCorreoUnico() {
+  const [indices] = await pool.query(
+    `SELECT DISTINCT INDEX_NAME FROM information_schema.STATISTICS
+     WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'usuarios'
+       AND COLUMN_NAME = 'email' AND NON_UNIQUE = 0`
+  );
+  if (indices.length > 0) return;
+
+  const [repetidos] = await pool.query(
+    `SELECT LOWER(TRIM(email)) AS correo, COUNT(*) AS veces FROM usuarios
+     GROUP BY LOWER(TRIM(email)) HAVING COUNT(*) > 1`
+  );
+  if (repetidos.length > 0) {
+    console.log('⚠️  Hay correos repetidos, no pude bloquear duplicados todavía:', repetidos.map((r) => r.correo).join(', '));
+    return;
+  }
+  await pool.query('UPDATE usuarios SET email = LOWER(TRIM(email))');
+  await pool.query('ALTER TABLE usuarios ADD UNIQUE INDEX uq_usuarios_email (email)');
+  console.log('✅ Ahora cada correo solo puede registrarse una vez.');
 }
 
 module.exports = prepararBaseDeDatos;
