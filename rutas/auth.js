@@ -39,6 +39,9 @@ router.post('/registro', async (req, res) => {
 
     res.status(201).json({ mensaje: 'Usuario creado', id: resultado.insertId });
   } catch (error) {
+    if (error.code === 'ER_DUP_ENTRY') {
+      return res.status(409).json({ error: 'Ese correo ya está registrado' });
+    }
     res.status(500).json({ error: 'No se pudo registrar el usuario', detalle: error.message });
   }
 });
@@ -46,13 +49,15 @@ router.post('/registro', async (req, res) => {
 // CREAR CUENTA DE PROFESOR (solo un profesor ya logueado puede hacerlo)
 router.post('/registro-profesor', verificarToken, permitirRoles('profesor'), async (req, res) => {
   try {
-    const { nombre, email, contrasena } = req.body;
+    const nombre = String(req.body.nombre || '').trim();
+    const email = String(req.body.email || '').trim().toLowerCase();
+    const { contrasena } = req.body;
 
     if (!nombre || !email || !contrasena) {
       return res.status(400).json({ error: 'Faltan datos' });
     }
 
-    const [existente] = await pool.query('SELECT id_usuarios FROM usuarios WHERE email = ?', [email]);
+    const [existente] = await pool.query('SELECT id_usuarios FROM usuarios WHERE LOWER(TRIM(email)) = ?', [email]);
     if (existente.length > 0) {
       return res.status(409).json({ error: 'Ese correo ya está registrado' });
     }
@@ -66,6 +71,9 @@ router.post('/registro-profesor', verificarToken, permitirRoles('profesor'), asy
 
     res.status(201).json({ mensaje: 'Profesor creado', id: resultado.insertId });
   } catch (error) {
+    if (error.code === 'ER_DUP_ENTRY') {
+      return res.status(409).json({ error: 'Ese correo ya está registrado' });
+    }
     res.status(500).json({ error: 'No se pudo registrar el profesor', detalle: error.message });
   }
 });
