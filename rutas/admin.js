@@ -24,7 +24,9 @@ router.get('/usuarios', async (req, res) => {
 // CREAR una cuenta de profesor
 router.post('/profesores', async (req, res) => {
   try {
-    const { nombre, email, contrasena } = req.body;
+    const nombre = String(req.body.nombre || '').trim();
+    const email = String(req.body.email || '').trim().toLowerCase();
+    const { contrasena } = req.body;
     if (!nombre || !email || !contrasena) {
       return res.status(400).json({ error: 'Faltan datos' });
     }
@@ -32,7 +34,7 @@ router.post('/profesores', async (req, res) => {
       return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres' });
     }
 
-    const [existente] = await pool.query('SELECT id_usuarios FROM usuarios WHERE email = ?', [email]);
+    const [existente] = await pool.query('SELECT id_usuarios FROM usuarios WHERE LOWER(TRIM(email)) = ?', [email]);
     if (existente.length > 0) {
       return res.status(409).json({ error: 'Ese correo ya está registrado' });
     }
@@ -44,6 +46,9 @@ router.post('/profesores', async (req, res) => {
     );
     res.status(201).json({ mensaje: 'Profesor creado', id: resultado.insertId });
   } catch (error) {
+    if (error.code === 'ER_DUP_ENTRY') {
+      return res.status(409).json({ error: 'Ese correo ya está registrado' });
+    }
     res.status(500).json({ error: 'No se pudo crear el profesor', detalle: error.message });
   }
 });
